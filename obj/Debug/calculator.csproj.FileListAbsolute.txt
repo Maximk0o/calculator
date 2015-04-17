@@ -1,1 +1,6 @@
 c:\users\зазубрина\documents\visual studio 2013\Projects\calculator\calculator\bin\Debug\calculator.exe.config
+c:\users\зазубрина\documents\visual studio 2013\Projects\calculator\calculator\obj\Debug\calculator.csprojResolveAssemblyReference.cache
+c:\users\зазубрина\documents\visual studio 2013\Projects\calculator\calculator\bin\Debug\calculator.exe
+c:\users\зазубрина\documents\visual studio 2013\Projects\calculator\calculator\bin\Debug\calculator.pdb
+c:\users\зазубрина\documents\visual studio 2013\Projects\calculator\calculator\obj\Debug\calculator.exe
+c:\users\зазубрина\documents\visual studio 2013\Projects\calculator\calculator\obj\Debug\calculator.pdb
