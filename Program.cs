@@ -49,10 +49,10 @@ namespace calculator {
             Operations = new List<Operation<double>>();
             Brackets = new List<Bracket>();
 
-            Operations.Add(new Operation<double>("+", (x, y) => (x + y), 10));
-            Operations.Add(new Operation<double>("-", (x, y) => (x - y), 10));
-            Operations.Add(new Operation<double>("*", (x, y) => (x * y), 20));
-            Operations.Add(new Operation<double>("/", (x, y) => (x / y), 20));
+            Operations.Add(new Operation<double>("+", (x, y) => (y + x), 10));
+            Operations.Add(new Operation<double>("-", (x, y) => (y - x), 10));
+            Operations.Add(new Operation<double>("*", (x, y) => (y * x), 20));
+            Operations.Add(new Operation<double>("/", (x, y) => (y / x), 20));
             Operations.Sort((x, y) => (y.Symbol.Length.CompareTo(x.Symbol.Length)));
 
             Brackets.Add(new Bracket("(", ")"));
@@ -61,8 +61,24 @@ namespace calculator {
 
         public double Solve(String Expression) {
             String PostfixExpression = Postfix(Expression);
-            Console.WriteLine(PostfixExpression);
-            return 0;
+            Stack<double> NumbersStack = new Stack<double>();
+            double Temp;
+            foreach (String Part in Seporate(PostfixExpression)) {
+                if (double.TryParse(Part, out Temp)) {
+                    NumbersStack.Push(Temp);
+                }
+                else if (Operations.Any(x => (x.Symbol == Part))) {
+                    if (NumbersStack.Count < 2) {
+                        throw new CalculationException("Error in expression");
+                    }
+                    NumbersStack.Push(GetOperationBySymbol(Part).Action(NumbersStack.Pop(), NumbersStack.Pop()));
+                }
+            }
+
+            if (NumbersStack.Count != 1) {
+                throw new CalculationException("Error in expression");
+            }
+            return NumbersStack.Pop();
         }
 
         private String Postfix(String Expression) {
@@ -72,6 +88,7 @@ namespace calculator {
 
             foreach (string Part in Seporate(Expression)) {
                 if (double.TryParse(Part, out ForTest)) {
+                    PostfixExpression.Append(" ");
                     PostfixExpression.Append(Part);
                 }
                 else if (Brackets.Any(x => (x.Open == Part))) {
@@ -80,9 +97,10 @@ namespace calculator {
                 else if (Operations.Any(x => (x.Symbol == Part))) {
                     Operation<double> CurrentOperation = GetOperationBySymbol(Part);
                     while (OperationStack.Count > 0) {
-                        if (OperationStack.Peek().Priority <= CurrentOperation.Priority) {
+                        if (OperationStack.Peek().Priority < CurrentOperation.Priority) {
                             break;
                         }
+                        PostfixExpression.Append(" ");
                         PostfixExpression.Append(OperationStack.Pop().Symbol);
                     }
                     OperationStack.Push(CurrentOperation);
@@ -96,6 +114,7 @@ namespace calculator {
                         if (Brackets.Any(x => (x.Open == OperationStack.Peek().Symbol))) {
                             throw new CalculationException("Error in brackets");
                         }
+                        PostfixExpression.Append(" ");
                         PostfixExpression.Append(OperationStack.Pop().Symbol);
                     }
                     if (OperationStack.Count == 0) {
@@ -108,6 +127,7 @@ namespace calculator {
                 if (Brackets.Any(x => (x.Open == OperationStack.Peek().Symbol))) {
                     throw new CalculationException("Error in brackets");
                 }
+                PostfixExpression.Append(" ");
                 PostfixExpression.Append(OperationStack.Pop().Symbol);
             }
             return PostfixExpression.ToString();
@@ -161,7 +181,7 @@ namespace calculator {
     class Program {
         static void Main(string[] args) {
             Calculator c = new Calculator();
-            c.Solve(" 2,7 + [5*3+( 7- 2)] * 4 /5  ");
+            Console.WriteLine(c.Solve(" 2,7 + [5*3+( 7- 2)] * [4 /(5  -4 +(9-2))]"));
             Console.ReadKey();
         }
     }
