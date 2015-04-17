@@ -49,14 +49,35 @@ namespace calculator {
             Operations = new List<Operation<double>>();
             Brackets = new List<Bracket>();
 
-            Operations.Add(new Operation<double>("+", (x, y) => (y + x), 10));
-            Operations.Add(new Operation<double>("-", (x, y) => (y - x), 10));
-            Operations.Add(new Operation<double>("*", (x, y) => (y * x), 20));
-            Operations.Add(new Operation<double>("/", (x, y) => (y / x), 20));
-            Operations.Sort((x, y) => (y.Symbol.Length.CompareTo(x.Symbol.Length)));
+            AddOperation(new Operation<double>("+", (x, y) => (y + x), 10));
+            AddOperation(new Operation<double>("-", (x, y) => (y - x), 10));
+            AddOperation(new Operation<double>("*", (x, y) => (y * x), 20));
+            AddOperation(new Operation<double>("/", (x, y) => (y / x), 20));
 
-            Brackets.Add(new Bracket("(", ")"));
-            Brackets.Add(new Bracket("[", "]"));
+            AddBrackets(new Bracket("(", ")"));
+        }
+
+        public void AddOperation(Operation<double> NewOperation) {
+            if (Operations.Any(x => (x.Symbol == NewOperation.Symbol))) {
+                return;
+            }
+            Operations.Add(NewOperation);
+            Operations.Sort((x, y) => (y.Symbol.Length.CompareTo(x.Symbol.Length)));
+        }
+
+        public void AddOperation(String Symbol, Func<double, double, double> Action, uint Priority) {
+            AddOperation(new Operation<double>(Symbol, Action, Priority));
+        }
+
+        public void AddBrackets(Bracket NewBrackets) {
+            if (Brackets.Any(x => ((x.Open == NewBrackets.Open) || (x.Open == NewBrackets.Close) || (x.Close == NewBrackets.Open) || (x.Close == NewBrackets.Close)))) {
+                return;
+            }
+            Brackets.Add(NewBrackets);
+        }
+
+        public void AddBrackets(String Open, String Close) {
+            AddBrackets(new Bracket(Open, Close));
         }
 
         public double Solve(String Expression) {
@@ -181,7 +202,9 @@ namespace calculator {
     class Program {
         static void Main(string[] args) {
             Calculator c = new Calculator();
-            Console.WriteLine(c.Solve(" 2,7 + [5*3+( 7- 2)] * [4 /(5  -4 +(9-2))]"));
+            c.AddBrackets("[", "]");
+            c.AddOperation(new Operation<double>("**", (x, y) => (Math.Pow(y, x)), 30));
+            Console.WriteLine(c.Solve(" (2,7 + [5*3+( 7- 2)] * [4 /(5  -4 +(9-2))])**2"));
             Console.ReadKey();
         }
     }
