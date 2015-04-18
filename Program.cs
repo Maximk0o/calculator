@@ -19,25 +19,29 @@ namespace calculator {
         }
     }
 
-    public struct Operation<T> {
+    public class Operand {
         public String Symbol;
-        public Func<T, T, T> Action;
         public uint Priority;
 
-        public Operation(String Symbol, Func<T, T, T> Action, uint Priority) {
+        public Operand(String Symbol,  uint Priority) {
             this.Symbol = Symbol;
-            this.Action = Action;
             this.Priority = Priority;
         }
     }
 
-    public struct Bracket {
-        public String Open;
-        public String Close;
+    public class Operation<T> : Operand {
+        public Func<T, T, T> Action;
 
-        public Bracket(String Open, String Close) {
-            this.Open = Open;
-            this.Close = Close;         
+        public Operation(String Symbol, Func<T, T, T> Action, uint Priority) : base(Symbol, Priority){
+            this.Action = Action;
+        }
+    }
+
+    public class Bracket : Operand {
+        public String CloseSymbol;
+
+        public Bracket(String Open, String Close) : base(Open, 0) {
+            this.CloseSymbol = Close;
         }
     }
 
@@ -70,7 +74,7 @@ namespace calculator {
         }
 
         public void AddBrackets(Bracket NewBrackets) {
-            if (Brackets.Any(x => ((x.Open == NewBrackets.Open) || (x.Open == NewBrackets.Close) || (x.Close == NewBrackets.Open) || (x.Close == NewBrackets.Close)))) {
+            if (Brackets.Any(x => ((x.Symbol == NewBrackets.Symbol) || (x.Symbol == NewBrackets.CloseSymbol) || (x.CloseSymbol == NewBrackets.Symbol) || (x.CloseSymbol == NewBrackets.CloseSymbol)))) {
                 return;
             }
             Brackets.Add(NewBrackets);
@@ -104,7 +108,7 @@ namespace calculator {
 
         private String Postfix(String Expression) {
             StringBuilder PostfixExpression = new StringBuilder();
-            Stack<Operation<double>> OperationStack = new Stack<Operation<double>>();
+            Stack<Operand> OperationStack = new Stack<Operand>();
             double ForTest;
 
             foreach (string Part in Seporate(Expression)) {
@@ -112,8 +116,8 @@ namespace calculator {
                     PostfixExpression.Append(" ");
                     PostfixExpression.Append(Part);
                 }
-                else if (Brackets.Any(x => (x.Open == Part))) {
-                    OperationStack.Push(new Operation<double>(Part, null, 0));
+                else if (Brackets.Any(x => (x.Symbol == Part))) {
+                    OperationStack.Push(new Operand(Part, 0));
                 }
                 else if (Operations.Any(x => (x.Symbol == Part))) {
                     Operation<double> CurrentOperation = GetOperationBySymbol(Part);
@@ -126,13 +130,13 @@ namespace calculator {
                     }
                     OperationStack.Push(CurrentOperation);
                 }
-                else if (Brackets.Any(x => (x.Close == Part))) {
+                else if (Brackets.Any(x => (x.CloseSymbol == Part))) {
                     Bracket CurrentBrackets = GetBracketByCloseSymbol(Part);
                     while (OperationStack.Count > 0) {
-                        if (OperationStack.Peek().Symbol == CurrentBrackets.Open) {
+                        if (OperationStack.Peek().Symbol == CurrentBrackets.Symbol) {
                             break;
                         }
-                        if (Brackets.Any(x => (x.Open == OperationStack.Peek().Symbol))) {
+                        if (Brackets.Any(x => (x.Symbol == OperationStack.Peek().Symbol))) {
                             throw new CalculationException("Error in brackets");
                         }
                         PostfixExpression.Append(" ");
@@ -145,7 +149,7 @@ namespace calculator {
                 }
             }
             while (OperationStack.Count > 0) {
-                if (Brackets.Any(x => (x.Open == OperationStack.Peek().Symbol))) {
+                if (Brackets.Any(x => (x.Symbol == OperationStack.Peek().Symbol))) {
                     throw new CalculationException("Error in brackets");
                 }
                 PostfixExpression.Append(" ");
@@ -165,7 +169,7 @@ namespace calculator {
 
         private Bracket GetBracketByCloseSymbol(String Symbol) {
             for (int i = 0; i < Brackets.Count; i++) {
-                if (Brackets[i].Close == Symbol) {
+                if (Brackets[i].CloseSymbol == Symbol) {
                     return Brackets[i];
                 }
             }
@@ -193,7 +197,7 @@ namespace calculator {
                 Pattern += "|" + Regex.Escape(Operations[i].Symbol);
             }
             for (int i = 0; i < Brackets.Count; i++) {
-                Pattern += "|" + Regex.Escape(Brackets[i].Open.ToString()) + "|" + Regex.Escape(Brackets[i].Close.ToString());
+                Pattern += "|" + Regex.Escape(Brackets[i].Symbol.ToString()) + "|" + Regex.Escape(Brackets[i].CloseSymbol.ToString());
             }
             return new Regex(Pattern + ")");
         }
