@@ -109,6 +109,10 @@ namespace calculator {
         }
 
         private String Postfix(String Expression) {
+            Expression = Expression.Trim();
+            if (Expression.Length == 0) {
+                throw new CalculationException("Empty expression");
+            }
             StringBuilder PostfixExpression = new StringBuilder();
             Stack<Operand> OperationStack = new Stack<Operand>();
             double ForTest;
@@ -179,14 +183,13 @@ namespace calculator {
         }
 
         private IEnumerable<string> Seporate(String Expression) {
-            Expression = Expression.Trim();
             int Position = 0;
             Regex PartRegex = CreatePartRegex();
 
             while (Position < Expression.Length) {
                 Match RegexResult = PartRegex.Match(Expression.Substring(Position));
                 if (!RegexResult.Success) {
-                    throw new CalculationException("Illegal symbols in expression");
+                    throw new CalculationException("Illegal expression");
                 }
                 yield return RegexResult.Groups[1].Value;
                 Position += RegexResult.Value.Length;

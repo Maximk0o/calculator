@@ -11,7 +11,7 @@ namespace calculator {
             Calculator c = new Calculator();
             c.AddBrackets("[", "]");
             c.AddOperation("**", (x, y) => (Math.Pow(y, x)), 30);
-            Console.WriteLine(c.Solve(" 2,7 + ([5*3+( 7- 2)] * [4 /(5  -4 +(9-2))])**2"));
+            Console.WriteLine(c.Solve("8+1/(1+(3-8)/5)"));
             Console.ReadKey();
         }
     }
