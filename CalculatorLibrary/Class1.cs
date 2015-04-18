@@ -20,8 +20,10 @@ namespace calculator {
     }
 
     public class Calculator {
-        private List<Operation<double>> Operations;
+        private List<BinaryOperation<double>> BinaryOperations;
+        private List<UnaryOperation<double>> UnaryOperations;
         private List<Bracket> Brackets;
+        public bool SameBynaryAndUnarySymbols = false;
 
         private class Operand {
             public String Symbol;
@@ -33,11 +35,20 @@ namespace calculator {
             }
         }
 
-        private class Operation<T> : Operand {
+        private class BinaryOperation<T> : Operand {
             public Func<T, T, T> Action;
 
-            public Operation(String Symbol, Func<T, T, T> Action, uint Priority)
+            public BinaryOperation(String Symbol, Func<T, T, T> Action, uint Priority)
                 : base(Symbol, Priority) {
+                this.Action = Action;
+            }
+        }
+
+        private class UnaryOperation<T> : BinaryOperation<T> {
+            public Func<T, T> Action;
+
+            public UnaryOperation(String Symbol, Func<T, T> Action, uint Priority)
+                : base(Symbol, null, Priority) {
                 this.Action = Action;
             }
         }
@@ -52,32 +63,82 @@ namespace calculator {
         }
 
         public Calculator() {
-            Operations = new List<Operation<double>>();
+            BinaryOperations = new List<BinaryOperation<double>>();
+            UnaryOperations = new List<UnaryOperation<double>>();
             Brackets = new List<Bracket>();
 
-            AddOperation(new Operation<double>("+", (x, y) => (y + x), 10));
-            AddOperation(new Operation<double>("-", (x, y) => (y - x), 10));
-            AddOperation(new Operation<double>("*", (x, y) => (y * x), 20));
-            AddOperation(new Operation<double>("/", (x, y) => (y / x), 20));
+            AddBinaryOperation(new BinaryOperation<double>("+", (x, y) => (x + y), 10));
+            AddBinaryOperation(new BinaryOperation<double>("-", (x, y) => (x - y), 10));
+            AddBinaryOperation(new BinaryOperation<double>("*", (x, y) => (x * y), 20));
+            AddBinaryOperation(new BinaryOperation<double>("/", (x, y) => (x / y), 20));
+
+            AddUnaryOperation(new UnaryOperation<double>("Abs", (x) => (Math.Abs(x)), 0));
 
             AddBrackets(new Bracket("(", ")"));
         }
 
-        private void AddOperation(Operation<double> NewOperation) {
-            if (Operations.Any(x => (x.Symbol == NewOperation.Symbol))) {
+        private void AddBinaryOperation(BinaryOperation<double> NewOperation) {
+            if (UnaryOperations.Any(x => (x.Symbol == NewOperation.Symbol)) && !SameBynaryAndUnarySymbols) {
+                throw new CalculationException("Binary and unary operations can't have same symbols");
+            }
+            else if (BinaryOperations.Any(x => (x.Symbol == NewOperation.Symbol))) {
+                UnaryOperation<double> Temp = GetUnaryOperationBySymbol(NewOperation.Symbol);
+                CreateSameOperations(NewOperation,
+                                     Temp,
+                                     out NewOperation,
+                                     out Temp
+                );
+            }
+            else if (BinaryOperations.Any(x => (x.Symbol == NewOperation.Symbol))) {
                 return;
             }
-            Operations.Add(NewOperation);
-            Operations.Sort((x, y) => (y.Symbol.Length.CompareTo(x.Symbol.Length)));
+            BinaryOperations.Add(NewOperation);
         }
 
-        public void AddOperation(String Symbol, Func<double, double, double> Action, uint Priority) {
-            AddOperation(new Operation<double>(Symbol, Action, Priority));
+        public void AddBinaryOperation(String Symbol, Func<double, double, double> Action, uint Priority) {
+            AddBinaryOperation(new BinaryOperation<double>(Symbol, Action, Priority));
+        }
+
+        private void AddUnaryOperation(UnaryOperation<double> NewOperation) {
+            if (UnaryOperations.Any(x => (x.Symbol == NewOperation.Symbol))) {
+                return;
+            }
+            else if (BinaryOperations.Any(x => (x.Symbol == NewOperation.Symbol)) && !SameBynaryAndUnarySymbols) {
+                throw new CalculationException("Binary and unary operations can't have same symbols");
+            }
+            else if (BinaryOperations.Any(x => (x.Symbol == NewOperation.Symbol))) {
+                BinaryOperation<double> Temp;
+                CreateSameOperations(GetOperationBySymbol(NewOperation.Symbol), 
+                                     NewOperation,
+                                     out Temp,
+                                     out NewOperation
+                );
+            }
+
+            UnaryOperations.Add(NewOperation);
+        }
+
+        public void AddUnaryOperation(String Symbol, Func<double, double> Action, uint Priority) {
+            AddUnaryOperation(new UnaryOperation<double>(Symbol, Action, Priority));
+        }
+
+        private void CreateSameOperations(BinaryOperation<double> Binary, UnaryOperation<double> Unary,
+                     out BinaryOperation<double> NewBinary, out UnaryOperation<double> NewUnary) {
+            NewBinary = Binary;
+            if (Binary.Symbol == null) {
+                NewBinary.Symbol = Unary.Symbol;
+            }
+            NewUnary = Unary;
+            NewUnary.Symbol = "UNARY" + Binary.Symbol;
         }
 
         private void AddBrackets(Bracket NewBrackets) {
-            if (Brackets.Any(x => ((x.Symbol == NewBrackets.Symbol) || (x.Symbol == NewBrackets.CloseSymbol) || (x.CloseSymbol == NewBrackets.Symbol) || (x.CloseSymbol == NewBrackets.CloseSymbol)))) {
+            if (Brackets.Any(x => ((x.Symbol == NewBrackets.Symbol) && (x.CloseSymbol == NewBrackets.CloseSymbol)))) {
                 return;
+            }
+            else if (Brackets.Any(x => ((x.Symbol == NewBrackets.Symbol) || (x.Symbol == NewBrackets.CloseSymbol) || 
+                    (x.CloseSymbol == NewBrackets.Symbol) || (x.CloseSymbol == NewBrackets.CloseSymbol)))) {
+                throw new CalculationException("Brackets owerlaps with exists");
             }
             Brackets.Add(NewBrackets);
         }
@@ -88,23 +149,37 @@ namespace calculator {
 
         public double Solve(String Expression) {
             String PostfixExpression = Postfix(Expression);
+            bool OldSameBynaryAndUnarySymbols = SameBynaryAndUnarySymbols;
+            SameBynaryAndUnarySymbols = false;
             Stack<double> NumbersStack = new Stack<double>();
             double Temp;
             foreach (String Part in Seporate(PostfixExpression)) {
                 if (double.TryParse(Part, out Temp)) {
                     NumbersStack.Push(Temp);
                 }
-                else if (Operations.Any(x => (x.Symbol == Part))) {
+                else if (BinaryOperations.Any(x => (x.Symbol == Part))) {
                     if (NumbersStack.Count < 2) {
                         throw new CalculationException("Error in expression");
                     }
-                    NumbersStack.Push(GetOperationBySymbol(Part).Action(NumbersStack.Pop(), NumbersStack.Pop()));
+                    double y = NumbersStack.Pop();
+                    double x = NumbersStack.Pop();
+                    NumbersStack.Push(GetOperationBySymbol(Part).Action(x, y));
+                }
+                else if (UnaryOperations.Any(x => (x.Symbol == Part))) {
+                    if (NumbersStack.Count < 1) {
+                        throw new CalculationException("Error in expression");
+                    }
+                    NumbersStack.Push(GetUnaryOperationBySymbol(Part).Action(NumbersStack.Pop()));
+                }
+                else {
+                    throw new CalculationException("Something wrong!");
                 }
             }
 
             if (NumbersStack.Count != 1) {
                 throw new CalculationException("Error in expression");
             }
+            SameBynaryAndUnarySymbols = OldSameBynaryAndUnarySymbols;
             return NumbersStack.Pop();
         }
 
@@ -125,16 +200,16 @@ namespace calculator {
                 else if (Brackets.Any(x => (x.Symbol == Part))) {
                     OperationStack.Push(new Operand(Part, 0));
                 }
-                else if (Operations.Any(x => (x.Symbol == Part))) {
-                    Operation<double> CurrentOperation = GetOperationBySymbol(Part);
+                else if (BinaryOperations.Any(x => (x.Symbol == Part)) || UnaryOperations.Any(x => (x.Symbol == Part))) {
+                    Operand CurrentOperand = GetOperationBySymbol(Part);
                     while (OperationStack.Count > 0) {
-                        if (OperationStack.Peek().Priority < CurrentOperation.Priority) {
+                        if (OperationStack.Peek().Priority < CurrentOperand.Priority) {
                             break;
                         }
                         PostfixExpression.Append(" ");
                         PostfixExpression.Append(OperationStack.Pop().Symbol);
                     }
-                    OperationStack.Push(CurrentOperation);
+                    OperationStack.Push(CurrentOperand);
                 }
                 else if (Brackets.Any(x => (x.CloseSymbol == Part))) {
                     Bracket CurrentBrackets = GetBracketByCloseSymbol(Part);
@@ -153,6 +228,9 @@ namespace calculator {
                     }
                     OperationStack.Pop();
                 }
+                else {
+                    throw new CalculationException("Something wrong!");
+                }
             }
             while (OperationStack.Count > 0) {
                 if (Brackets.Any(x => (x.Symbol == OperationStack.Peek().Symbol))) {
@@ -164,10 +242,24 @@ namespace calculator {
             return PostfixExpression.ToString();
         }
 
-        private Operation<double> GetOperationBySymbol(String Symbol) {
-            for (int i = 0; i < Operations.Count; i++) {
-                if (Operations[i].Symbol == Symbol) {
-                    return Operations[i];
+        private BinaryOperation<double> GetOperationBySymbol(String Symbol) {
+            for (int i = 0; i < BinaryOperations.Count; i++) {
+                if (BinaryOperations[i].Symbol == Symbol) {
+                    return BinaryOperations[i];
+                }
+            }
+            for (int i = 0; i < UnaryOperations.Count; i++) {
+                if (UnaryOperations[i].Symbol == Symbol) {
+                    return UnaryOperations[i];
+                }
+            }
+            throw new CalculationException("Something wrong!");
+        }
+
+        private UnaryOperation<double> GetUnaryOperationBySymbol(String Symbol) {
+            for (int i = 0; i < UnaryOperations.Count; i++) {
+                if (UnaryOperations[i].Symbol == Symbol) {
+                    return UnaryOperations[i];
                 }
             }
             throw new CalculationException("Something wrong!");
@@ -186,23 +278,40 @@ namespace calculator {
             int Position = 0;
             Regex PartRegex = CreatePartRegex();
 
+            String LastPart = null;
+
             while (Position < Expression.Length) {
                 Match RegexResult = PartRegex.Match(Expression.Substring(Position));
                 if (!RegexResult.Success) {
                     throw new CalculationException("Illegal expression");
                 }
-                yield return RegexResult.Groups[1].Value;
+                String CurrentPart = RegexResult.Groups[1].Value;
+                if (SameBynaryAndUnarySymbols && LastPart != null) { 
+                    double Temp;
+                    if (!Double.TryParse(CurrentPart, out Temp) && Brackets.All(x => (x.Symbol != CurrentPart))) {
+                        if (!Double.TryParse(LastPart, out Temp) && Brackets.All(x => (x.CloseSymbol != LastPart))) {
+                            CurrentPart = "UNARY" + CurrentPart;
+                        } 
+                    }
+                }
+                yield return CurrentPart;
+                LastPart = CurrentPart;
                 Position += RegexResult.Value.Length;
             }
         }
 
         private Regex CreatePartRegex() {
             String Pattern = @"^\s*(\d+(\,\d+)?";
-            for (int i = 0; i < Operations.Count; i++) {
-                Pattern += "|" + Regex.Escape(Operations[i].Symbol);
+            List<Operand> Operands = new List<Operand>();
+            Operands.AddRange(BinaryOperations);
+            Operands.AddRange(UnaryOperations);
+            Operands.AddRange(Brackets);
+            Operands.Sort((x, y) => (y.Symbol.Length.CompareTo(x.Symbol.Length)));
+            for (int i = 0; i < Operands.Count; i++) {
+                Pattern += "|" + Regex.Escape(Operands[i].Symbol);
             }
             for (int i = 0; i < Brackets.Count; i++) {
-                Pattern += "|" + Regex.Escape(Brackets[i].Symbol.ToString()) + "|" + Regex.Escape(Brackets[i].CloseSymbol.ToString());
+                Pattern += "|" + Regex.Escape(Brackets[i].CloseSymbol.ToString());
             }
             return new Regex(Pattern + ")");
         }

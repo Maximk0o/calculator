@@ -10,7 +10,7 @@ namespace CalculatorTest {
             Calculator calc = new Calculator();
 
             calc.AddBrackets("[", "]");
-            calc.AddOperation("**", (x, y) => (Math.Pow(y, x)), 30);
+            calc.AddBinaryOperation("**", (x, y) => (Math.Pow(x, y)), 30);
             Assert.AreEqual(161.29, calc.Solve(" ( 2,7 + [5*3+( 7- 2)] * [4 /(5  -4 +(9-2))])**2 \n\r\t"));
             Assert.AreEqual(11, calc.Solve("( 2 + 2*4 )/ ( 2 - 3/3) + 1"));
             Assert.AreEqual(6, calc.Solve("2+2*2"));
@@ -104,7 +104,7 @@ namespace CalculatorTest {
                 ExceptionCount++;
             }
             try {
-                calc.Solve(" ( 2 + +4) ");
+                calc.Solve(" ( 2 + 4) + (-)");
             }
             catch (CalculationException e) {
                 StringAssert.Contains(e.Message, "Error in expression");
