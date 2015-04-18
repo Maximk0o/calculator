@@ -286,10 +286,13 @@ namespace calculator {
                     throw new CalculationException("Illegal expression");
                 }
                 String CurrentPart = RegexResult.Groups[1].Value;
-                if (SameBynaryAndUnarySymbols && LastPart != null) { 
+                if (SameBynaryAndUnarySymbols) { 
                     double Temp;
                     if (!Double.TryParse(CurrentPart, out Temp) && Brackets.All(x => (x.Symbol != CurrentPart))) {
-                        if (!Double.TryParse(LastPart, out Temp) && Brackets.All(x => (x.CloseSymbol != LastPart))) {
+                        if (LastPart == null) {
+                            CurrentPart = "UNARY" + CurrentPart;
+                        }
+                        else if (!Double.TryParse(LastPart, out Temp) && Brackets.All(x => (x.CloseSymbol != LastPart))) {
                             CurrentPart = "UNARY" + CurrentPart;
                         } 
                     }
