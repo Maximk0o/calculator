@@ -19,35 +19,37 @@ namespace calculator {
         }
     }
 
-    public class Operand {
-        public String Symbol;
-        public uint Priority;
-
-        public Operand(String Symbol,  uint Priority) {
-            this.Symbol = Symbol;
-            this.Priority = Priority;
-        }
-    }
-
-    public class Operation<T> : Operand {
-        public Func<T, T, T> Action;
-
-        public Operation(String Symbol, Func<T, T, T> Action, uint Priority) : base(Symbol, Priority){
-            this.Action = Action;
-        }
-    }
-
-    public class Bracket : Operand {
-        public String CloseSymbol;
-
-        public Bracket(String Open, String Close) : base(Open, 0) {
-            this.CloseSymbol = Close;
-        }
-    }
-
     public class Calculator {
         private List<Operation<double>> Operations;
         private List<Bracket> Brackets;
+
+        private class Operand {
+            public String Symbol;
+            public uint Priority;
+
+            public Operand(String Symbol, uint Priority) {
+                this.Symbol = Symbol;
+                this.Priority = Priority;
+            }
+        }
+
+        private class Operation<T> : Operand {
+            public Func<T, T, T> Action;
+
+            public Operation(String Symbol, Func<T, T, T> Action, uint Priority)
+                : base(Symbol, Priority) {
+                this.Action = Action;
+            }
+        }
+
+        private class Bracket : Operand {
+            public String CloseSymbol;
+
+            public Bracket(String Open, String Close)
+                : base(Open, 0) {
+                this.CloseSymbol = Close;
+            }
+        }
 
         public Calculator() {
             Operations = new List<Operation<double>>();
@@ -61,7 +63,7 @@ namespace calculator {
             AddBrackets(new Bracket("(", ")"));
         }
 
-        public void AddOperation(Operation<double> NewOperation) {
+        private void AddOperation(Operation<double> NewOperation) {
             if (Operations.Any(x => (x.Symbol == NewOperation.Symbol))) {
                 return;
             }
@@ -73,7 +75,7 @@ namespace calculator {
             AddOperation(new Operation<double>(Symbol, Action, Priority));
         }
 
-        public void AddBrackets(Bracket NewBrackets) {
+        private void AddBrackets(Bracket NewBrackets) {
             if (Brackets.Any(x => ((x.Symbol == NewBrackets.Symbol) || (x.Symbol == NewBrackets.CloseSymbol) || (x.CloseSymbol == NewBrackets.Symbol) || (x.CloseSymbol == NewBrackets.CloseSymbol)))) {
                 return;
             }
@@ -200,16 +202,6 @@ namespace calculator {
                 Pattern += "|" + Regex.Escape(Brackets[i].Symbol.ToString()) + "|" + Regex.Escape(Brackets[i].CloseSymbol.ToString());
             }
             return new Regex(Pattern + ")");
-        }
-    }
-
-    class Program {
-        static void Main(string[] args) {
-            Calculator c = new Calculator();
-            c.AddBrackets("[", "]");
-            c.AddOperation(new Operation<double>("**", (x, y) => (Math.Pow(y, x)), 30));
-            Console.WriteLine(c.Solve(" (2,7 + [5*3+( 7- 2)] * [4 /(5  -4 +(9-2))])**2"));
-            Console.ReadKey();
         }
     }
 }
