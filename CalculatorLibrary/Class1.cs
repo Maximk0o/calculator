@@ -210,6 +210,7 @@ namespace calculator {
         private Regex CreatePartRegex() {
             String Pattern = @"^\s*(\d+(\,\d+)?";
             Operations.Sort((x, y) => (y.Symbol.Length.CompareTo(x.Symbol.Length)));
+            Brackets.Sort((x, y) => (y.Symbol.Length.CompareTo(x.Symbol.Length)));
             for (int i = 0; i < Operations.Count; i++) {
                 Pattern += "|" + Regex.Escape(Operations[i].Symbol);
             }

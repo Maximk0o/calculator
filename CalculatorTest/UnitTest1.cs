@@ -51,7 +51,17 @@ namespace CalculatorTest {
             Calculator calc = new Calculator();
 
             calc.AddBrackets("[", "]");
+            calc.AddBrackets("((", "))");
+            calc.AddBrackets("(", ")");
+
             int ExceptionCount = 0;
+            try {
+                calc.AddBrackets("(", "+");
+            }
+            catch (CalculationException e) {
+                StringAssert.Contains(e.Message, "Brackets owerlaps with exists");
+                ExceptionCount++;
+            }
             try {
                 calc.Solve(" ( 2,4 + 4 - [ 5 - 4)]");
             }
@@ -66,7 +76,7 @@ namespace CalculatorTest {
                 StringAssert.Contains(e.Message, "Error in brackets");
                 ExceptionCount++;
             }
-            Assert.AreEqual(2, ExceptionCount);
+            Assert.AreEqual(3, ExceptionCount);
         }
 
         [TestMethod]
