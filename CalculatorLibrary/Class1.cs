@@ -55,10 +55,10 @@ namespace calculator {
             Operations = new List<Operation<double>>();
             Brackets = new List<Bracket>();
 
-            AddOperation(new Operation<double>("+", (x, y) => (y + x), 10));
-            AddOperation(new Operation<double>("-", (x, y) => (y - x), 10));
-            AddOperation(new Operation<double>("*", (x, y) => (y * x), 20));
-            AddOperation(new Operation<double>("/", (x, y) => (y / x), 20));
+            AddOperation(new Operation<double>("+", (x, y) => (x + y), 10));
+            AddOperation(new Operation<double>("-", (x, y) => (x - y), 10));
+            AddOperation(new Operation<double>("*", (x, y) => (x * y), 20));
+            AddOperation(new Operation<double>("/", (x, y) => (x / y), 20));
 
             AddBrackets(new Bracket("(", ")"));
         }
@@ -68,7 +68,6 @@ namespace calculator {
                 return;
             }
             Operations.Add(NewOperation);
-            Operations.Sort((x, y) => (y.Symbol.Length.CompareTo(x.Symbol.Length)));
         }
 
         public void AddOperation(String Symbol, Func<double, double, double> Action, uint Priority) {
@@ -76,8 +75,12 @@ namespace calculator {
         }
 
         private void AddBrackets(Bracket NewBrackets) {
-            if (Brackets.Any(x => ((x.Symbol == NewBrackets.Symbol) || (x.Symbol == NewBrackets.CloseSymbol) || (x.CloseSymbol == NewBrackets.Symbol) || (x.CloseSymbol == NewBrackets.CloseSymbol)))) {
+            if (Brackets.Any(x => ((x.Symbol == NewBrackets.Symbol) && (x.CloseSymbol == NewBrackets.CloseSymbol)))) {
                 return;
+            }
+            else if (Brackets.Any(x => ((x.Symbol == NewBrackets.Symbol) || (x.Symbol == NewBrackets.CloseSymbol) ||
+                    (x.CloseSymbol == NewBrackets.Symbol) || (x.CloseSymbol == NewBrackets.CloseSymbol)))) {
+                throw new CalculationException("Brackets owerlaps with exists");
             }
             Brackets.Add(NewBrackets);
         }
@@ -98,7 +101,12 @@ namespace calculator {
                     if (NumbersStack.Count < 2) {
                         throw new CalculationException("Error in expression");
                     }
-                    NumbersStack.Push(GetOperationBySymbol(Part).Action(NumbersStack.Pop(), NumbersStack.Pop()));
+                    double y = NumbersStack.Pop();
+                    double x = NumbersStack.Pop();
+                    NumbersStack.Push(GetOperationBySymbol(Part).Action(x, y));
+                }
+                else {
+                    throw new CalculationException("Something wrong!");
                 }
             }
 
@@ -126,7 +134,7 @@ namespace calculator {
                     OperationStack.Push(new Operand(Part, 0));
                 }
                 else if (Operations.Any(x => (x.Symbol == Part))) {
-                    Operation<double> CurrentOperation = GetOperationBySymbol(Part);
+                    Operand CurrentOperation = GetOperationBySymbol(Part);
                     while (OperationStack.Count > 0) {
                         if (OperationStack.Peek().Priority < CurrentOperation.Priority) {
                             break;
@@ -152,6 +160,9 @@ namespace calculator {
                         throw new CalculationException("Error in brackets");
                     }
                     OperationStack.Pop();
+                }
+                else {
+                    throw new CalculationException("Something wrong!");
                 }
             }
             while (OperationStack.Count > 0) {
@@ -198,6 +209,7 @@ namespace calculator {
 
         private Regex CreatePartRegex() {
             String Pattern = @"^\s*(\d+(\,\d+)?";
+            Operations.Sort((x, y) => (y.Symbol.Length.CompareTo(x.Symbol.Length)));
             for (int i = 0; i < Operations.Count; i++) {
                 Pattern += "|" + Regex.Escape(Operations[i].Symbol);
             }
