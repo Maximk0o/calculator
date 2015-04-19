@@ -54,12 +54,56 @@ namespace CalculatorTest {
             calc.AddBrackets("((", "))");
             calc.AddBrackets("(", ")");
 
+            Assert.AreEqual(5.4, calc.Solve(" ( 2,4 + 4) - (( 5 - 4))"));
+
             int ExceptionCount = 0;
             try {
-                calc.AddBrackets("(", "+");
+                calc.AddBrackets("((", "%");
             }
             catch (CalculationException e) {
                 StringAssert.Contains(e.Message, "Brackets owerlaps with exists");
+                ExceptionCount++;
+            }
+            try {
+                calc.AddBrackets(":", "+");
+            }
+            catch (CalculationException e) {
+                StringAssert.Contains(e.Message, "One or more symbols is exists operation");
+                ExceptionCount++;
+            }
+            try {
+                calc.AddBrackets(":", ":");
+            }
+            catch (CalculationException e) {
+                StringAssert.Contains(e.Message, "Opend and closed brackets can't be the same");
+                ExceptionCount++;
+            }
+            try {
+                calc.AddBrackets("", ":");
+            }
+            catch (CalculationException e) {
+                StringAssert.Contains(e.Message, "Symbol can't be whitespace");
+                ExceptionCount++;
+            }
+            try {
+                calc.AddBrackets(":", "\n");
+            }
+            catch (CalculationException e) {
+                StringAssert.Contains(e.Message, "Symbol can't be whitespace");
+                ExceptionCount++;
+            }
+            try {
+                calc.AddBrackets(null, ":");
+            }
+            catch (CalculationException e) {
+                StringAssert.Contains(e.Message, "Incorrect brackets data");
+                ExceptionCount++;
+            }
+            try {
+                calc.AddBrackets(":", null);
+            }
+            catch (CalculationException e) {
+                StringAssert.Contains(e.Message, "Incorrect brackets data");
                 ExceptionCount++;
             }
             try {
@@ -76,7 +120,7 @@ namespace CalculatorTest {
                 StringAssert.Contains(e.Message, "Error in brackets");
                 ExceptionCount++;
             }
-            Assert.AreEqual(3, ExceptionCount);
+            Assert.AreEqual(9, ExceptionCount);
         }
 
         [TestMethod]
@@ -98,7 +142,28 @@ namespace CalculatorTest {
                 StringAssert.Contains(e.Message, "Illegal expression");
                 ExceptionCount++;
             }
-            Assert.AreEqual(2, ExceptionCount);
+            try {
+                calc.Solve(" ( 2 + 4,,4) ");
+            }
+            catch (CalculationException e) {
+                StringAssert.Contains(e.Message, "Illegal expression");
+                ExceptionCount++;
+            }
+            try {
+                calc.Solve(" ( 2 + ,4) ");
+            }
+            catch (CalculationException e) {
+                StringAssert.Contains(e.Message, "Illegal expression");
+                ExceptionCount++;
+            }
+            try {
+                calc.Solve(" 10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 ");
+            }
+            catch (CalculationException e) {
+                StringAssert.Contains(e.Message, "Number too big");
+                ExceptionCount++;
+            }
+            Assert.AreEqual(5, ExceptionCount);
         }
 
         [TestMethod]
@@ -106,6 +171,20 @@ namespace CalculatorTest {
             Calculator calc = new Calculator();
 
             int ExceptionCount = 0;
+            try {
+                calc.Solve("    ");
+            }
+            catch (CalculationException e) {
+                StringAssert.Contains(e.Message, "Empty expression");
+                ExceptionCount++;
+            }
+            try {
+                calc.Solve(null);
+            }
+            catch (CalculationException e) {
+                StringAssert.Contains(e.Message, "Error in expression");
+                ExceptionCount++;
+            }
             try {
                 calc.Solve(" ( 2,4 + 4)7,5+4 ");
             }
@@ -120,21 +199,50 @@ namespace CalculatorTest {
                 StringAssert.Contains(e.Message, "Error in expression");
                 ExceptionCount++;
             }
-            Assert.AreEqual(2, ExceptionCount);
+            Assert.AreEqual(4, ExceptionCount);
         }
 
         [TestMethod]
-        public void EmptyExpressionTest() {
+        public void AddOperationTest() {
             Calculator calc = new Calculator();
 
+            int ExceptionCount = 0;
             try {
-                calc.Solve("    ");
+                calc.AddOperation(")", (x, y) => (x % y), 54);
             }
             catch (CalculationException e) {
-                StringAssert.Contains(e.Message, "Empty expression");
-                return;
+                StringAssert.Contains(e.Message, "Operation symbol is bracket");
+                ExceptionCount++;
             }
-            Assert.Fail("No exception was thrown.");
+            try {
+                calc.AddOperation("(", (x, y) => (x % y), 54);
+            }
+            catch (CalculationException e) {
+                StringAssert.Contains(e.Message, "Operation symbol is bracket");
+                ExceptionCount++;
+            }
+            try {
+                calc.AddOperation("", (x, y) => (x % y), 54);
+            }
+            catch (CalculationException e) {
+                StringAssert.Contains(e.Message, "Symbol can't be whitespace");
+                ExceptionCount++;
+            }
+            try {
+                calc.AddOperation(null, (x, y) => (x % y), 54);
+            }
+            catch (CalculationException e) {
+                StringAssert.Contains(e.Message, "Incorrect operation data");
+                ExceptionCount++;
+            }
+            try {
+                calc.AddOperation("", null, 51);
+            }
+            catch (CalculationException e) {
+                StringAssert.Contains(e.Message, "Incorrect operation data");
+                ExceptionCount++;
+            }
+            Assert.AreEqual(5, ExceptionCount);
         }
     }
 }

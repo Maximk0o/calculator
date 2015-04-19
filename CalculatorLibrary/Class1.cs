@@ -19,6 +19,9 @@ namespace calculator {
         }
     }
 
+    /// <summary>
+    /// Класс вычисления результата арифметических выражений
+    /// </summary>
     public class Calculator {
         private List<Operation<double>> Operations;
         private List<Bracket> Brackets;
@@ -64,35 +67,80 @@ namespace calculator {
         }
 
         private void AddOperation(Operation<double> NewOperation) {
-            if (Operations.Any(x => (x.Symbol == NewOperation.Symbol))) {
+            if (NewOperation.Symbol == null || NewOperation.Action == null) {
+                throw new CalculationException("Incorrect operation data");
+            }
+            else if (Regex.Match(NewOperation.Symbol, @"^\s*$").Success) {
+                throw new CalculationException("Symbol can't be whitespace");
+            }
+            else if (Operations.Any(x => (x.Symbol == NewOperation.Symbol))) {
                 return;
             }
+            else if (Brackets.Any(x => ((x.Symbol == NewOperation.Symbol) || (x.CloseSymbol == NewOperation.Symbol)))) {
+                throw new CalculationException("Operation symbol is bracket");
+            }
+
             Operations.Add(NewOperation);
         }
 
+        /// <summary>
+        /// Добавление новой бинарной алгебраической операции
+        /// </summary>
+        /// <param name="Symbol">Символ операции</param>
+        /// <param name="Action">Функция, описывающая операцию</param>
+        /// <param name="Priority">Приоритет операции</param>
         public void AddOperation(String Symbol, Func<double, double, double> Action, uint Priority) {
             AddOperation(new Operation<double>(Symbol, Action, Priority));
         }
 
         private void AddBrackets(Bracket NewBrackets) {
-            if (Brackets.Any(x => ((x.Symbol == NewBrackets.Symbol) && (x.CloseSymbol == NewBrackets.CloseSymbol)))) {
+            if (NewBrackets.Symbol == null || NewBrackets.CloseSymbol == null) {
+                throw new CalculationException("Incorrect brackets data");
+            }
+            else if (Regex.Match(NewBrackets.Symbol, @"^\s*$").Success || Regex.Match(NewBrackets.CloseSymbol, @"^\s*$").Success) {
+                throw new CalculationException("Symbol can't be whitespace");
+            }
+            else if (Brackets.Any(x => ((x.Symbol == NewBrackets.Symbol) && (x.CloseSymbol == NewBrackets.CloseSymbol)))) {
                 return;
             }
             else if (Brackets.Any(x => ((x.Symbol == NewBrackets.Symbol) || (x.Symbol == NewBrackets.CloseSymbol) ||
                     (x.CloseSymbol == NewBrackets.Symbol) || (x.CloseSymbol == NewBrackets.CloseSymbol)))) {
                 throw new CalculationException("Brackets owerlaps with exists");
             }
+            else if (Operations.Any(x => ((x.Symbol == NewBrackets.Symbol) || (x.Symbol == NewBrackets.CloseSymbol)))) {
+                throw new CalculationException("One or more symbols is exists operation");
+            }
+            else if (NewBrackets.Symbol == NewBrackets.CloseSymbol) {
+                throw new CalculationException("Opend and closed brackets can't be the same");
+            }
+
             Brackets.Add(NewBrackets);
         }
 
+        /// <summary>
+        /// Добавление нового вида скобок
+        /// </summary>
+        /// <param name="Open">Символ открывающейся скобки</param>
+        /// <param name="Close">Символ закрывающейся скобки</param>
         public void AddBrackets(String Open, String Close) {
             AddBrackets(new Bracket(Open, Close));
         }
 
+        /// <summary>
+        /// Метод решения арифметического выражения
+        /// </summary>
+        /// <param name="Expression">Строка - арифметическое выражение</param>
+        /// <returns>Результат вычисления выражения</returns>
         public double Solve(String Expression) {
+            if (Expression == null) {
+                throw new CalculationException("Error in expression");
+            }
+
             String PostfixExpression = Postfix(Expression);
+
             Stack<double> NumbersStack = new Stack<double>();
             double Temp;
+
             foreach (String Part in Seporate(PostfixExpression)) {
                 if (double.TryParse(Part, out Temp)) {
                     NumbersStack.Push(Temp);
@@ -101,9 +149,14 @@ namespace calculator {
                     if (NumbersStack.Count < 2) {
                         throw new CalculationException("Error in expression");
                     }
+
                     double y = NumbersStack.Pop();
                     double x = NumbersStack.Pop();
                     NumbersStack.Push(GetOperationBySymbol(Part).Action(x, y));
+
+                    if (Double.IsNaN(NumbersStack.Peek())) {
+                        throw new CalculationException("Result is too big");
+                    }
                 }
                 else {
                     throw new CalculationException("Something wrong!");
@@ -113,14 +166,22 @@ namespace calculator {
             if (NumbersStack.Count != 1) {
                 throw new CalculationException("Error in expression");
             }
+
             return NumbersStack.Pop();
         }
 
+        /// <summary>
+        /// Метод преобразования инфиксной записи в постфиксную
+        /// </summary>
+        /// <param name="Expression">Выражение в инфиксной форме</param>
+        /// <returns>Выражение в постфиксной форме</returns>
         private String Postfix(String Expression) {
             Expression = Expression.Trim();
+
             if (Expression.Length == 0) {
                 throw new CalculationException("Empty expression");
             }
+
             StringBuilder PostfixExpression = new StringBuilder();
             Stack<Operand> OperationStack = new Stack<Operand>();
             double ForTest;
@@ -135,17 +196,21 @@ namespace calculator {
                 }
                 else if (Operations.Any(x => (x.Symbol == Part))) {
                     Operand CurrentOperation = GetOperationBySymbol(Part);
+
                     while (OperationStack.Count > 0) {
                         if (OperationStack.Peek().Priority < CurrentOperation.Priority) {
                             break;
                         }
+
                         PostfixExpression.Append(" ");
                         PostfixExpression.Append(OperationStack.Pop().Symbol);
                     }
+
                     OperationStack.Push(CurrentOperation);
                 }
                 else if (Brackets.Any(x => (x.CloseSymbol == Part))) {
                     Bracket CurrentBrackets = GetBracketByCloseSymbol(Part);
+
                     while (OperationStack.Count > 0) {
                         if (OperationStack.Peek().Symbol == CurrentBrackets.Symbol) {
                             break;
@@ -153,13 +218,19 @@ namespace calculator {
                         if (Brackets.Any(x => (x.Symbol == OperationStack.Peek().Symbol))) {
                             throw new CalculationException("Error in brackets");
                         }
+
                         PostfixExpression.Append(" ");
                         PostfixExpression.Append(OperationStack.Pop().Symbol);
                     }
+
                     if (OperationStack.Count == 0) {
                         throw new CalculationException("Error in brackets");
                     }
+
                     OperationStack.Pop();
+                }
+                else if (Regex.Match(Part, @"^\s*\d+(,\d+)?").Success) {
+                    throw new CalculationException("Number too big");
                 }
                 else {
                     throw new CalculationException("Something wrong!");
@@ -169,6 +240,7 @@ namespace calculator {
                 if (Brackets.Any(x => (x.Symbol == OperationStack.Peek().Symbol))) {
                     throw new CalculationException("Error in brackets");
                 }
+
                 PostfixExpression.Append(" ");
                 PostfixExpression.Append(OperationStack.Pop().Symbol);
             }
@@ -199,24 +271,31 @@ namespace calculator {
 
             while (Position < Expression.Length) {
                 Match RegexResult = PartRegex.Match(Expression.Substring(Position));
+
                 if (!RegexResult.Success) {
                     throw new CalculationException("Illegal expression");
                 }
+
                 yield return RegexResult.Groups[1].Value;
+
                 Position += RegexResult.Value.Length;
             }
         }
 
         private Regex CreatePartRegex() {
             String Pattern = @"^\s*(\d+(\,\d+)?";
+
             Operations.Sort((x, y) => (y.Symbol.Length.CompareTo(x.Symbol.Length)));
             Brackets.Sort((x, y) => (y.Symbol.Length.CompareTo(x.Symbol.Length)));
+
             for (int i = 0; i < Operations.Count; i++) {
                 Pattern += "|" + Regex.Escape(Operations[i].Symbol);
             }
+
             for (int i = 0; i < Brackets.Count; i++) {
                 Pattern += "|" + Regex.Escape(Brackets[i].Symbol.ToString()) + "|" + Regex.Escape(Brackets[i].CloseSymbol.ToString());
             }
+
             return new Regex(Pattern + ")");
         }
     }
