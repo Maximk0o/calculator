@@ -8,14 +8,21 @@ namespace CalculatorTest {
         [TestMethod]
         public void BasicTest() {
             Calculator calc = new Calculator();
-
             calc.AddBrackets("[", "]");
             calc.AddOperation("**", (x, y) => (Math.Pow(x, y)), 30);
-            Assert.AreEqual(161.29, calc.Solve(" ( 2,7 + [5*3+( 7- 2)] * [4 /(5  -4 +(9-2))])**2 \n\r\t"));
-            Assert.AreEqual(11, calc.Solve("( 2 + 2*4 )/ ( 2 - 3/3) + 1"));
-            Assert.AreEqual(6, calc.Solve("2+2*2"));
-            Assert.AreEqual(5, calc.Solve("3 + 4/2"));
-            Assert.AreEqual(double.PositiveInfinity, calc.Solve("[8+1/(1+(3-8)/5)]-1000"));
+
+            Double result = calc.Solve(" ( 2,7 + [5*3+( 7- 2)] * [4 /(5  -4 +(9-2))])**2 \n\r\t");
+       
+            Assert.AreEqual(161.29, result);
+        }
+
+        [TestMethod]
+        public void ProcedureTest() {
+            Calculator calc = new Calculator();
+
+            Double result = calc.Solve("2+2*2");
+
+            Assert.AreEqual(6, result);
         }
 
         [TestMethod]
@@ -23,7 +30,7 @@ namespace CalculatorTest {
             Calculator calc = new Calculator();
 
             try {
-                calc.Solve(" ( 2,7 + 5*3+( 7- 2) * 4 /(5  -4 +(9-2)))&2");
+                calc.Solve(" 2,7 & 2");
             }
             catch (CalculationException e) {
                 StringAssert.Contains(e.Message, "Illegal expression");
@@ -33,237 +40,367 @@ namespace CalculatorTest {
         }
 
         [TestMethod]
-        public void UndefinedBracketsTest() {
+        public void IntricateBracketsTest() {
             Calculator calc = new Calculator();
-
-            try {
-                calc.Solve(" ( 2,4 + 4) - [ 5 - 4]");
-            }
-            catch (CalculationException e) {
-                StringAssert.Contains(e.Message, "Illegal expression");
-                return;
-            }
-            Assert.Fail("No exception was thrown.");
-        }
-
-        [TestMethod]
-        public void IllegalBracketsTest() {
-            Calculator calc = new Calculator();
-
             calc.AddBrackets("@--", "--@");
             calc.AddBrackets("((", "))");
-            calc.AddBrackets("(", ")");
 
-            Assert.AreEqual(5.4 * 3, calc.Solve(" @--( 2,4 + 4) - (( 5 - 4))--@ * 3"));
+            Double result = calc.Solve(" @--( 2,4 + ((4 - 5 - 4)) )--@ * 3");
 
-            int ExceptionCount = 0;
+            Assert.AreEqual(((2.4 + (4 - 5 - 4))) * 3, result);
+        }
+
+        [TestMethod]
+        public void ExistsBracketsTest() {
+            Calculator calc = new Calculator();
+
             try {
-                calc.AddBrackets("((", "%");
+                calc.AddBrackets("(", "%");
             }
             catch (CalculationException e) {
-                StringAssert.Contains(e.Message, "Brackets owerlaps with exists");
-                ExceptionCount++;
+                StringAssert.Contains(e.Message, "Brackets overlaps with exists");
+                return;
             }
+            Assert.Fail("No exception was thrown.");
+        }
+
+        [TestMethod]
+        public void OperationSymbolBracketsTest() {
+            Calculator calc = new Calculator();
+
             try {
                 calc.AddBrackets(":", "+");
             }
             catch (CalculationException e) {
                 StringAssert.Contains(e.Message, "One or more symbols is exists operation");
-                ExceptionCount++;
+                return;
             }
+            Assert.Fail("No exception was thrown.");
+        }
+
+        [TestMethod]
+        public void NumberBracketsTest() {
+            Calculator calc = new Calculator();
+
             try {
                 calc.AddBrackets(":", "@9,34--");
             }
             catch (CalculationException e) {
                 StringAssert.Contains(e.Message, "Illegal bracket format");
-                ExceptionCount++;
+                return;
             }
+            Assert.Fail("No exception was thrown.");
+        }
+
+        [TestMethod]
+        public void CommaBracketsTest() {
+            Calculator calc = new Calculator();
+
             try {
                 calc.AddBrackets("=,@", "--");
             }
             catch (CalculationException e) {
                 StringAssert.Contains(e.Message, "Illegal bracket format");
-                ExceptionCount++;
+                return;
             }
-            try {
-                calc.AddBrackets("-,", "+");
-            }
-            catch (CalculationException e) {
-                StringAssert.Contains(e.Message, "One or more symbols is exists operation");
-                ExceptionCount++;
-            }
+            Assert.Fail("No exception was thrown.");
+        }
+
+        [TestMethod]
+        public void SameBracketsTest() {
+            Calculator calc = new Calculator();
+
             try {
                 calc.AddBrackets(":", ":");
             }
             catch (CalculationException e) {
                 StringAssert.Contains(e.Message, "Opend and closed brackets can't be the same");
-                ExceptionCount++;
+                return;
             }
+            Assert.Fail("No exception was thrown.");
+        }
+
+        [TestMethod]
+        public void EmptyBracketsTest() {
+            Calculator calc = new Calculator();
+
             try {
                 calc.AddBrackets("", ":");
             }
             catch (CalculationException e) {
-                StringAssert.Contains(e.Message, "Symbol can't be whitespace");
-                ExceptionCount++;
-            }
-            try {
-                calc.AddBrackets(":", "\n");
-            }
-            catch (CalculationException e) {
-                StringAssert.Contains(e.Message, "Symbol can't be whitespace");
-                ExceptionCount++;
-            }
-            try {
-                calc.AddBrackets(null, ":");
-            }
-            catch (CalculationException e) {
                 StringAssert.Contains(e.Message, "Incorrect brackets data");
-                ExceptionCount++;
+                return;
             }
-            try {
-                calc.AddBrackets(":", null);
-            }
-            catch (CalculationException e) {
-                StringAssert.Contains(e.Message, "Incorrect brackets data");
-                ExceptionCount++;
-            }
-            try {
-                calc.Solve(" ( 2,4 + 4 - (( 5 - 4) ))");
-            }
-            catch (CalculationException e) {
-                StringAssert.Contains(e.Message, "Error in brackets");
-                ExceptionCount++;
-            }
-            try {
-                calc.Solve(" ( 2,4 + ((4 - 5)) ) - 4)");
-            }
-            catch (CalculationException e) {
-                StringAssert.Contains(e.Message, "Error in brackets");
-                ExceptionCount++;
-            }
-            Assert.AreEqual(12, ExceptionCount);
+            Assert.Fail("No exception was thrown.");
         }
 
         [TestMethod]
-        public void IllegalNumberFormatTest() {
+        public void WhitespaceBracketsTest() {
             Calculator calc = new Calculator();
 
-            int ExceptionCount = 0;
+            try {
+                calc.AddBrackets("\n", ":");
+            }
+            catch (CalculationException e) {
+                StringAssert.Contains(e.Message, "Symbol can't include whitespace");
+                return;
+            }
+            Assert.Fail("No exception was thrown.");
+        }
+
+        [TestMethod]
+        public void NullBracketsTest() {
+            Calculator calc = new Calculator();
+
+            try {
+                calc.AddBrackets("^", null);
+            }
+            catch (CalculationException e) {
+                StringAssert.Contains(e.Message, "Incorrect brackets data");
+                return;
+            }
+            Assert.Fail("No exception was thrown.");
+        }
+
+        [TestMethod]
+        public void OverlapsBracketsTest() {
+            Calculator calc = new Calculator();
+            calc.AddBrackets("[", "]");
+
+            try {
+                calc.Solve(" ( 2,4 + 4 - [ 5 - 4) ]");
+            }
+            catch (CalculationException e) {
+                StringAssert.Contains(e.Message, "Error in brackets");
+                return;
+            }
+            Assert.Fail("No exception was thrown.");
+        }
+
+        [TestMethod]
+        public void ExcessCloseBracketTest() {
+            Calculator calc = new Calculator();
+            calc.AddBrackets("[", "]");
+
+            try {
+                calc.Solve(" ( 2,4 + 4) - [ 5 - 4 ])");
+            }
+            catch (CalculationException e) {
+                StringAssert.Contains(e.Message, "Error in brackets");
+                return;
+            }
+            Assert.Fail("No exception was thrown.");
+        }
+
+        [TestMethod]
+        public void ExcessOpenBracketTest() {
+            Calculator calc = new Calculator();
+            calc.AddBrackets("[", "]");
+
+            try {
+                calc.Solve(" (( 2,4 + 4) - [ 5 - 4 ]");
+            }
+            catch (CalculationException e) {
+                StringAssert.Contains(e.Message, "Error in brackets");
+                return;
+            }
+            Assert.Fail("No exception was thrown.");
+        }
+
+        [TestMethod]
+        public void IllegalNumberFormatTest1() {
+            Calculator calc = new Calculator();
+
             try {
                 calc.Solve(" ( 2,4,7 + 4) ");
             }
             catch (CalculationException e) {
                 StringAssert.Contains(e.Message, "Illegal expression");
-                ExceptionCount++;
+                return;
             }
+            Assert.Fail("No exception was thrown.");
+        }
+
+        [TestMethod]
+        public void IllegalNumberFormatTest2() {
+            Calculator calc = new Calculator();
+
             try {
                 calc.Solve(" ( 2, + 4) ");
             }
             catch (CalculationException e) {
                 StringAssert.Contains(e.Message, "Illegal expression");
-                ExceptionCount++;
+                return;
             }
+            Assert.Fail("No exception was thrown.");
+        }
+
+        [TestMethod]
+        public void IllegalNumberFormatTest3() {
+            Calculator calc = new Calculator();
+
             try {
                 calc.Solve(" ( 2 + 4,,4) ");
             }
             catch (CalculationException e) {
                 StringAssert.Contains(e.Message, "Illegal expression");
-                ExceptionCount++;
+                return;
             }
+            Assert.Fail("No exception was thrown.");
+        }
+
+        [TestMethod]
+        public void IllegalNumberFormatTest4() {
+            Calculator calc = new Calculator();
+
             try {
                 calc.Solve(" ( 2 + ,4) ");
             }
             catch (CalculationException e) {
                 StringAssert.Contains(e.Message, "Illegal expression");
-                ExceptionCount++;
+                return;
             }
+            Assert.Fail("No exception was thrown.");
+        }
+
+        [TestMethod]
+        public void BigNumberTest() {
+            Calculator calc = new Calculator();
+
             try {
                 calc.Solve(" 10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 ");
             }
             catch (CalculationException e) {
                 StringAssert.Contains(e.Message, "Number too big");
-                ExceptionCount++;
+                return;
             }
-            Assert.AreEqual(5, ExceptionCount);
+            Assert.Fail("No exception was thrown.");
         }
 
         [TestMethod]
-        public void ExpressionTest() {
+        public void EmptyExpressionTest() {
             Calculator calc = new Calculator();
 
-            int ExceptionCount = 0;
             try {
-                calc.Solve("    ");
+                calc.Solve("   \n\t ");
             }
             catch (CalculationException e) {
                 StringAssert.Contains(e.Message, "Empty expression");
-                ExceptionCount++;
+                return;
             }
+            Assert.Fail("No exception was thrown.");
+        }
+
+        [TestMethod]
+        public void NullExpressionTest() {
+            Calculator calc = new Calculator();
+
             try {
                 calc.Solve(null);
             }
             catch (CalculationException e) {
                 StringAssert.Contains(e.Message, "Error in expression");
-                ExceptionCount++;
+                return;
             }
+            Assert.Fail("No exception was thrown.");
+        }
+
+        [TestMethod]
+        public void OperationLessTest() {
+            Calculator calc = new Calculator();
+
             try {
                 calc.Solve(" ( 2,4 + 4)7,5+4 ");
             }
             catch (CalculationException e) {
                 StringAssert.Contains(e.Message, "Error in expression");
-                ExceptionCount++;
+                return;
             }
-            try {
-                calc.Solve(" ( 2 + +4) ");
-            }
-            catch (CalculationException e) {
-                StringAssert.Contains(e.Message, "Error in expression");
-                ExceptionCount++;
-            }
-            Assert.AreEqual(4, ExceptionCount);
+            Assert.Fail("No exception was thrown.");
         }
 
         [TestMethod]
-        public void AddOperationTest() {
+        public void NumberLessTest() {
             Calculator calc = new Calculator();
 
-            int ExceptionCount = 0;
+            try {
+                calc.Solve(" ( 2 + -4) ");
+            }
+            catch (CalculationException e) {
+                StringAssert.Contains(e.Message, "Error in expression");
+                return;
+            }
+            Assert.Fail("No exception was thrown.");
+        }
+
+        [TestMethod]
+        public void AddBracketOperationTest() {
+            Calculator calc = new Calculator();
+
             try {
                 calc.AddOperation(")", (x, y) => (x % y), 54);
             }
             catch (CalculationException e) {
                 StringAssert.Contains(e.Message, "Operation symbol is bracket");
-                ExceptionCount++;
+                return;
             }
-            try {
-                calc.AddOperation("(", (x, y) => (x % y), 54);
-            }
-            catch (CalculationException e) {
-                StringAssert.Contains(e.Message, "Operation symbol is bracket");
-                ExceptionCount++;
-            }
+            Assert.Fail("No exception was thrown.");
+        }
+
+        [TestMethod]
+        public void AddEmptyBracketTest() {
+            Calculator calc = new Calculator();
+
             try {
                 calc.AddOperation("", (x, y) => (x % y), 54);
             }
             catch (CalculationException e) {
-                StringAssert.Contains(e.Message, "Symbol can't be whitespace");
-                ExceptionCount++;
+                StringAssert.Contains(e.Message, "Incorrect operation data");
+                return;
             }
+            Assert.Fail("No exception was thrown.");
+        }
+
+        [TestMethod]
+        public void AddBracketWithWhitespaceTest() {
+            Calculator calc = new Calculator();
+
+            try {
+                calc.AddOperation("% %", (x, y) => (x % y), 54);
+            }
+            catch (CalculationException e) {
+                StringAssert.Contains(e.Message, "Symbol can't include whitespace");
+                return;
+            }
+            Assert.Fail("No exception was thrown.");
+        }
+
+        [TestMethod]
+        public void AddNullSymbolBracketTest() {
+            Calculator calc = new Calculator();
+
             try {
                 calc.AddOperation(null, (x, y) => (x % y), 54);
             }
             catch (CalculationException e) {
                 StringAssert.Contains(e.Message, "Incorrect operation data");
-                ExceptionCount++;
+                return;
             }
+            Assert.Fail("No exception was thrown.");
+        }
+
+        [TestMethod]
+        public void AddNullActionBracketTest() {
+            Calculator calc = new Calculator();
+
             try {
                 calc.AddOperation("", null, 51);
             }
             catch (CalculationException e) {
                 StringAssert.Contains(e.Message, "Incorrect operation data");
-                ExceptionCount++;
+                return;
             }
-            Assert.AreEqual(5, ExceptionCount);
+            Assert.Fail("No exception was thrown.");
         }
     }
 }

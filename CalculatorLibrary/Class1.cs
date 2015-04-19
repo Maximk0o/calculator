@@ -67,11 +67,11 @@ namespace calculator {
         }
 
         private void AddOperation(Operation<double> NewOperation) {
-            if (NewOperation.Symbol == null || NewOperation.Action == null) {
+            if (NewOperation.Symbol == String.Empty || NewOperation.Symbol == null || NewOperation.Action == null) {
                 throw new CalculationException("Incorrect operation data");
             }
-            else if (Regex.Match(NewOperation.Symbol, @"^\s*$").Success) {
-                throw new CalculationException("Symbol can't be whitespace");
+            else if (Regex.Match(NewOperation.Symbol, @"\s+").Success) {
+                throw new CalculationException("Symbol can't include whitespace");
             }
             else if (Operations.Any(x => (x.Symbol == NewOperation.Symbol))) {
                 return;
@@ -97,18 +97,18 @@ namespace calculator {
         }
 
         private void AddBrackets(Bracket NewBrackets) {
-            if (NewBrackets.Symbol == null || NewBrackets.CloseSymbol == null) {
+            if (NewBrackets.Symbol == null || NewBrackets.CloseSymbol == null || NewBrackets.Symbol == String.Empty || NewBrackets.CloseSymbol == String.Empty) {
                 throw new CalculationException("Incorrect brackets data");
             }
-            else if (Regex.Match(NewBrackets.Symbol, @"^\s*$").Success || Regex.Match(NewBrackets.CloseSymbol, @"^\s*$").Success) {
-                throw new CalculationException("Symbol can't be whitespace");
+            else if (Regex.Match(NewBrackets.Symbol, @"\s+").Success || Regex.Match(NewBrackets.CloseSymbol, @"\s+").Success) {
+                throw new CalculationException("Symbol can't include whitespace");
             }
             else if (Brackets.Any(x => ((x.Symbol == NewBrackets.Symbol) && (x.CloseSymbol == NewBrackets.CloseSymbol)))) {
                 return;
             }
             else if (Brackets.Any(x => ((x.Symbol == NewBrackets.Symbol) || (x.Symbol == NewBrackets.CloseSymbol) ||
                     (x.CloseSymbol == NewBrackets.Symbol) || (x.CloseSymbol == NewBrackets.CloseSymbol)))) {
-                throw new CalculationException("Brackets owerlaps with exists");
+                throw new CalculationException("Brackets overlaps with exists");
             }
             else if (Operations.Any(x => ((x.Symbol == NewBrackets.Symbol) || (x.Symbol == NewBrackets.CloseSymbol)))) {
                 throw new CalculationException("One or more symbols is exists operation");
