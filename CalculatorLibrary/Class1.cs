@@ -79,6 +79,9 @@ namespace calculator {
             else if (Brackets.Any(x => ((x.Symbol == NewOperation.Symbol) || (x.CloseSymbol == NewOperation.Symbol)))) {
                 throw new CalculationException("Operation symbol is bracket");
             }
+            else if (Regex.Match(NewOperation.Symbol, @"(\d+(,\d+)?)|,").Success) {
+                throw new CalculationException("Illegal operation format");
+            }
 
             Operations.Add(NewOperation);
         }
@@ -112,6 +115,9 @@ namespace calculator {
             }
             else if (NewBrackets.Symbol == NewBrackets.CloseSymbol) {
                 throw new CalculationException("Opend and closed brackets can't be the same");
+            }
+            else if (Regex.Match(NewBrackets.Symbol, @"(\d+(,\d+)?)|,").Success || Regex.Match(NewBrackets.CloseSymbol, @"(\d+(,\d+)?)|,").Success) {
+                throw new CalculationException("Illegal bracket format");
             }
 
             Brackets.Add(NewBrackets);
@@ -229,7 +235,7 @@ namespace calculator {
 
                     OperationStack.Pop();
                 }
-                else if (Regex.Match(Part, @"^\s*\d+(,\d+)?").Success) {
+                else if (Regex.Match(Part, @"^\d+(,\d+)?").Success) {
                     throw new CalculationException("Number too big");
                 }
                 else {
@@ -285,15 +291,15 @@ namespace calculator {
         private Regex CreatePartRegex() {
             String Pattern = @"^\s*(\d+(\,\d+)?";
 
-            Operations.Sort((x, y) => (y.Symbol.Length.CompareTo(x.Symbol.Length)));
-            Brackets.Sort((x, y) => (y.Symbol.Length.CompareTo(x.Symbol.Length)));
+            List<String> Operands = new List<String>();
+            Operands.AddRange(Brackets.Select(x => x.Symbol));
+            Operands.AddRange(Brackets.Select(x => x.CloseSymbol));
+            Operands.AddRange(Operations.Select(x => x.Symbol));
 
-            for (int i = 0; i < Operations.Count; i++) {
-                Pattern += "|" + Regex.Escape(Operations[i].Symbol);
-            }
+            Operands.Sort((x, y) => (y.Length.CompareTo(x.Length)));
 
-            for (int i = 0; i < Brackets.Count; i++) {
-                Pattern += "|" + Regex.Escape(Brackets[i].Symbol.ToString()) + "|" + Regex.Escape(Brackets[i].CloseSymbol.ToString());
+            for (int i = 0; i < Operands.Count; i++) {
+                Pattern += "|" + Regex.Escape(Operands[i]);
             }
 
             return new Regex(Pattern + ")");

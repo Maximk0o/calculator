@@ -50,11 +50,11 @@ namespace CalculatorTest {
         public void IllegalBracketsTest() {
             Calculator calc = new Calculator();
 
-            calc.AddBrackets("[", "]");
+            calc.AddBrackets("@--", "--@");
             calc.AddBrackets("((", "))");
             calc.AddBrackets("(", ")");
 
-            Assert.AreEqual(5.4, calc.Solve(" ( 2,4 + 4) - (( 5 - 4))"));
+            Assert.AreEqual(5.4 * 3, calc.Solve(" @--( 2,4 + 4) - (( 5 - 4))--@ * 3"));
 
             int ExceptionCount = 0;
             try {
@@ -66,6 +66,27 @@ namespace CalculatorTest {
             }
             try {
                 calc.AddBrackets(":", "+");
+            }
+            catch (CalculationException e) {
+                StringAssert.Contains(e.Message, "One or more symbols is exists operation");
+                ExceptionCount++;
+            }
+            try {
+                calc.AddBrackets(":", "@9,34--");
+            }
+            catch (CalculationException e) {
+                StringAssert.Contains(e.Message, "Illegal bracket format");
+                ExceptionCount++;
+            }
+            try {
+                calc.AddBrackets("=,@", "--");
+            }
+            catch (CalculationException e) {
+                StringAssert.Contains(e.Message, "Illegal bracket format");
+                ExceptionCount++;
+            }
+            try {
+                calc.AddBrackets("-,", "+");
             }
             catch (CalculationException e) {
                 StringAssert.Contains(e.Message, "One or more symbols is exists operation");
@@ -107,20 +128,20 @@ namespace CalculatorTest {
                 ExceptionCount++;
             }
             try {
-                calc.Solve(" ( 2,4 + 4 - [ 5 - 4)]");
+                calc.Solve(" ( 2,4 + 4 - (( 5 - 4) ))");
             }
             catch (CalculationException e) {
                 StringAssert.Contains(e.Message, "Error in brackets");
                 ExceptionCount++;
             }
             try {
-                calc.Solve(" ( 2,4 + [4 - 5]] - 4)");
+                calc.Solve(" ( 2,4 + ((4 - 5)) ) - 4)");
             }
             catch (CalculationException e) {
                 StringAssert.Contains(e.Message, "Error in brackets");
                 ExceptionCount++;
             }
-            Assert.AreEqual(9, ExceptionCount);
+            Assert.AreEqual(12, ExceptionCount);
         }
 
         [TestMethod]
